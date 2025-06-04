@@ -3,7 +3,7 @@ import os
 from functools import wraps
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
-from .wslogger import logger
+from .wslogger import wslogger
 from .wsprotection import Protection
 from .wsagent import Agent
 import threading
@@ -36,7 +36,7 @@ class WhaleSentinelDjangoAgent(object):
             self.agent_id = WS_AGENT_ID
             self._initialize()
         except Exception as e:
-            logger.error(f"Error initializing Whale Sentinel Django Agent: {e}")
+            wslogger.error(f"Error initializing Whale Sentinel Django Agent: {e}")
             raise
 
     def _initialize(self):
@@ -52,7 +52,7 @@ class WhaleSentinelDjangoAgent(object):
                 raise ValueError("WS_AGENT_ID must be set")
             Agent.__init__(self)
         except Exception as e:
-            logger.error(f"Error in Whale Sentinel Django Agent initialization: {e}")
+            wslogger.error(f"Error in Whale Sentinel Django Agent initialization: {e}")
 
     def whale_sentinel_agent_protection(self):
         def _whale_sentinel_agent_protection(view_func):
@@ -63,7 +63,9 @@ class WhaleSentinelDjangoAgent(object):
             def wrapper(request, *args, **kwargs):
                 profile = Agent._profile(self)
                 if profile is None:
-                    logger.info("Whale Sentinel Django Agent Protection: No profile found, skipping protection")
+                    wslogger.info("Whale Sentinel Django Agent Protection: No profile found, skipping protection")
+                    request_meta_data = Protection.do(self, request)
+                    threading.Thread(target=Agent._write_to_storage, args=(self, request_meta_data), daemon=True).start()
                     return view_func(request, *args, **kwargs)
                 
                 running_mode = profile.get("running_mode", "lite")
@@ -74,6 +76,9 @@ class WhaleSentinelDjangoAgent(object):
                 
                 response = view_func(request, *args, **kwargs)
 
+                if running_mode == "off":
+                    return response
+                
                 if running_mode  == "lite":
                     request_meta_data = Protection.do(self, request)
                     threading.Thread(target=Protection._mode_lite, args=(self, request_meta_data), daemon=True).start()
@@ -89,7 +94,7 @@ class WhaleSentinelDjangoAgent(object):
                     request_meta_data = Protection.do(self, request)
                     blocked = Protection._mode_protection(self, profile, request_meta_data)
                     if blocked:
-                        logger.info("Whale Sentinel Django Agent Protection: Request blocked by Whale Sentinel Protection")
+                        wslogger.info("Whale Sentinel Django Agent Protection: Request blocked by Whale Sentinel Protection")
                         return JsonResponse({
                             "msg": "Forbidden: Request blocked by Whale Sentinel Protection.",
                             "time": str(datetime.datetime.now()),
