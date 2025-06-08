@@ -123,6 +123,7 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
             endpoint = self.ws_gateway_api + "/agent/profile"
             data = {
                 "agent_id": self.agent_id,
+                "agent_name": self.agent_name,
                 "request_created_at": datetime.now().astimezone().isoformat()
             }
 
@@ -148,6 +149,7 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
             endpoint = self.ws_gateway_api + "/agent/profile"
             data = {
                 "agent_id": self.agent_id,
+                "agent_name": self.agent_name,
                 "request_created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
             }
 
@@ -185,6 +187,7 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
             for item in data_synchronize:
                 progress_status = {
                     "agent_id": self.agent_id,
+                    "agent_name": self.agent_name,
                     "payload" : {
                         "lite_mode_data_synchronize_status": "inprogress",
                         "lite_mode_data_is_synchronized": False
@@ -210,6 +213,7 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                     return None
             success_status = {
                 "agent_id": self.agent_id,
+                "agent_name": self.agent_name,
                 "payload": {
                     "lite_mode_data_synchronize_status": "success",
                     "lite_mode_data_is_synchronized": True,
