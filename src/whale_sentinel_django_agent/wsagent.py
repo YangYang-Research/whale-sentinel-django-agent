@@ -134,7 +134,10 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
             data_2 = {
                 "agent_id": self.agent_id,
                 "agent_name": self.agent_name,
-                "payload" : {},
+                "payload" : {
+                    "lite_mode_data_synchronize_status": "none",
+                    "lite_mode_data_is_synchronized": False
+                },
                 "ip_address": self.ip_address,
                 "request_created_at": datetime.now().astimezone().isoformat()
             }
@@ -226,7 +229,7 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                     fail_status = {
                         "agent_id": self.agent_id,
                         "payload": {
-                            "lite_mode_data_synchronize_status": "fail",
+                            "lite_mode_data_synchronize_status": "failure",
                             "lite_mode_data_is_synchronized": False,
                         },
                         "ip_address": self.ip_address,
@@ -238,7 +241,7 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                 "agent_id": self.agent_id,
                 "agent_name": self.agent_name,
                 "payload": {
-                    "lite_mode_data_synchronize_status": "success",
+                    "lite_mode_data_synchronize_status": "successed",
                     "lite_mode_data_is_synchronized": True,
                 },
                 "ip_address": self.ip_address,
