@@ -208,7 +208,9 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
             if gateway_response is None:
                 wslogger.info("Whale Sentinel Django Agent Protection: Communication with Whale Sentinel Gateway failed")
                 return None
-            return gateway_response.get("data", {})
+            analysis_metrix = gateway_response.get("data", {})
+            analysis_result = gateway_response.get("analysis_result", "NORMAL_CLIENT_REQUEST")
+            return analysis_metrix, analysis_result
         except Exception as e:
             wslogger.error(f"Something went wrong at Agent._detection.\n Error message - {e}")
 
