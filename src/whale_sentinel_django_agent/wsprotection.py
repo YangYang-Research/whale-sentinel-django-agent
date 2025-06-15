@@ -94,10 +94,10 @@ class Protection(object):
             req_ua_browser_version = parsed_ua.browser.version_string
 
             meta_data = {
-                "agent_id": self.agent_id,
-                "agent_name": self.agent_name,
                 "payload": {
                     "data": {
+                        "agent_id": self.agent_id,
+                        "agent_name": self.agent_name,
                         "client_information": {
                             "ip": req_ip,
                             "device_type": req_device,
