@@ -1,5 +1,5 @@
 from user_agents import parse
-from datetime import datetime
+from datetime import datetime, timezone
 from .wslogger import wslogger
 from .wsagent import Agent
 
@@ -121,7 +121,7 @@ class Protection(object):
                         },
                     }
                 },
-                "request_created_at": datetime.now().astimezone().isoformat()
+                "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
             }
             return meta_data
         except Exception as e:
