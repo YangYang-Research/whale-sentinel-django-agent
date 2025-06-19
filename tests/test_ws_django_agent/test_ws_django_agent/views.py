@@ -6,7 +6,6 @@ from django.utils.decorators import method_decorator
 from django.views import View
 import json
 
-
 ws_agent = WhaleSentinelDjangoAgent()
 
 @csrf_exempt
@@ -58,3 +57,30 @@ class SearchView(View):
             return JsonResponse(response)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+@ws_agent.whale_sentinel_agent_protection()
+def upload_file(request):
+    """
+    Upload file endpoint for Django
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    uploaded_file = request.FILES.get("file")
+    if not uploaded_file:
+        return JsonResponse({"error": "No file provided"}, status=400)
+
+    # Lấy thông tin file
+    file_info = {
+        "filename": uploaded_file.name,
+        "content_type": uploaded_file.content_type,
+        "size": uploaded_file.size,
+    }
+
+    # (Tuỳ chọn) Lưu file thủ công
+    # with open(f"uploads/{uploaded_file.name}", "wb") as f:
+    #     for chunk in uploaded_file.chunks():
+    #         f.write(chunk)
+
+    return JsonResponse({"message": "File uploaded successfully", "file_info": file_info})

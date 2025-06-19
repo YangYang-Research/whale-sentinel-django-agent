@@ -1,3 +1,5 @@
+import base64
+import hashlib
 from user_agents import parse
 from datetime import datetime, timezone
 from .wslogger import wslogger
@@ -78,7 +80,6 @@ class Protection(object):
             req_host = request.get_host()
             req_headers = request.headers
 
-            req_body = request.body.decode("utf-8") if request.body else ""
             req_query_string = request.META.get("QUERY_STRING", "")
             req_ip = request.META.get("REMOTE_ADDR", "")
             req_user_agent = req_headers.get("User-Agent", "N/A")
@@ -92,6 +93,25 @@ class Protection(object):
             req_network = parsed_ua.browser.family
             req_ua_browser = parsed_ua.browser.family
             req_ua_browser_version = parsed_ua.browser.version_string
+
+            uploaded_files_info = []
+            req_body = None
+            if "multipart/form-data" in request.headers.get("content-type", ""):
+                for file in request.FILES.values():
+                    contents = file.read()
+                    encoded = base64.b64encode(contents).decode('utf-8')
+                    sha256_hash = hashlib.sha256(contents).hexdigest()
+                    file_info = {
+                        'file_name': file.name,
+                        'file_size': len(contents),
+                        'file_content': encoded,
+                        'file_type': file.content_type,
+                        'file_hash256': sha256_hash
+                    }
+                    file.seek(0)
+                    uploaded_files_info.append(file_info)
+            else:
+                req_body = request.body.decode("utf-8") if req_body else None
 
             meta_data = {
                 "payload": {
@@ -117,12 +137,14 @@ class Protection(object):
                                 "referrer": req_referrer
                             },
                             "body": req_body,
-                            "query_parameters": req_query_string
+                            "query_parameters": req_query_string,
+                            "files": uploaded_files_info
                         },
                     }
                 },
                 "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
             }
+            print(f"Meta Data: {meta_data}")
             return meta_data
         except Exception as e:
             wslogger.error(f"Something went wrong at Protection.do.\n Error message - {e}")

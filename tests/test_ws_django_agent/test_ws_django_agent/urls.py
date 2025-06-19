@@ -16,10 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from .views import search, SearchView
+from .views import search, SearchView, upload_file
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("api/v1/search", search, name="search"),
     path("api/v1/search-view", SearchView.as_view(), name="search"),
+    path("api/v1/upload", upload_file, name="upload_file"),
 ]
