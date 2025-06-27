@@ -7,7 +7,10 @@ from .wslogger import wslogger
 from .wsprotection import Protection
 from .wsagent import Agent
 import threading
-import datetime
+from datetime import datetime, timezone
+from cachetools import TTLCache
+
+cache = TTLCache(maxsize=1000, ttl=60)  # Max size of 1000 and TTL of 60 seconds
 
 class WhaleSentinelDjangoAgent(object):
     """
@@ -78,13 +81,38 @@ class WhaleSentinelDjangoAgent(object):
                 last_run_mode = profile.get("last_run_mode", "lite")
                 data_synchronized = profile.get("lite_mode_data_is_synchronized", False)
                 data_synchronize_status = profile.get("lite_mode_data_synchronize_status", "none")
+                rate_limit_enable = profile.get("ws_request_rate_limit", {}).get("enable", False)
+                rate_limit_threshold = profile.get("ws_request_rate_limit", {}).get("threshold", 100)
                 secure_response_enabled = profile.get("secure_response_headers", {}).get("enable", False)
                 
+                client_ip_address = (
+                    request.META.get("REMOTE_ADDR")
+                )                
                 response = view_func(request, *args, **kwargs)
 
                 if running_mode == "off":
                     return response
                 
+                if rate_limit_enable:
+                    client_request_temp_id = (
+                        f"{client_ip_address}_{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
+                    )
+                    request_count = cache.get(client_request_temp_id)
+                    if request_count is None:
+                        cache[client_request_temp_id] = 1
+                    elif request_count >= rate_limit_threshold:
+                        request_meta_data = Protection.do(self, request)
+                        threading.Thread(target=Agent._write_to_storage, args=(self, request_meta_data), daemon=True).start()
+
+                        wslogger.info("Whale Sentinel Django Agent Protection: Request blocked by Whale Sentinel Protection")
+                        return JsonResponse({
+                                "msg": "Forbidden: Request blocked by Whale Sentinel Protection.",
+                                "time": str(datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')),
+                                "ip": client_ip_address
+                            }), 403
+                    else:
+                        cache[client_request_temp_id] += 1
+
                 if running_mode  == "lite":
                     request_meta_data = Protection.do(self, request)
                     threading.Thread(target=Protection._mode_lite, args=(self, request_meta_data), daemon=True).start()
@@ -103,8 +131,8 @@ class WhaleSentinelDjangoAgent(object):
                         wslogger.info("Whale Sentinel Django Agent Protection: Request blocked by Whale Sentinel Protection")
                         return JsonResponse({
                             "msg": "Forbidden: Request blocked by Whale Sentinel Protection.",
-                            "time": str(datetime.datetime.now()),
-                            "ip": request.META.get("REMOTE_ADDR")
+                            "time": str(datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')),
+                            "ip": client_ip_address
                         }, status=403)
 
                 if secure_response_enabled:
